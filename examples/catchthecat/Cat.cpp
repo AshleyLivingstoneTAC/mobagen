@@ -1,24 +1,29 @@
 #include "Cat.h"
 #include "World.h"
 #include <stdexcept>
+#include <queue>
+#include <unordered_map>
 
-Point2D Cat::Move(World* world) {
-  auto rand = Random::Range(0, 5);
+Point2D Cat::Move(World* world)
+{
+  std::queue<Point2D> frontier;
+  std::unordered_map<Point2D, Point2D> came_from;
   auto pos = world->getCat();
-  switch (rand) {
-    case 0:
-      return World::NE(pos);
-    case 1:
-      return World::NW(pos);
-    case 2:
-      return World::E(pos);
-    case 3:
-      return World::W(pos);
-    case 4:
-      return World::SW(pos);
-    case 5:
-      return World::SE(pos);
-    default:
-      throw "random out of range";
+  frontier.push(pos);
+  came_from[pos] = pos;
+
+  while(!frontier.empty())
+  {
+    Point2D current = frontier.front();
+    frontier.pop();
+    for(Point2D next : world->neighbors(pos))
+    {
+      if(came_from.find(next) == came_from.end() && world->catCanMoveToPosition(next))
+      {
+        frontier.push(next);
+        came_from[next] = current;
+        return next;
+      }
+    }
   }
 }
