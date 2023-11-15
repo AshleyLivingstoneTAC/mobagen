@@ -2,29 +2,30 @@
 #include "Random.h"
 #include "RecursiveBacktrackerExample.h"
 #include <climits>
-bool check(Point2D point, int maxX, int maxY)
+bool check(Point2D point, Point2D min, Point2D max)
 {
-  if(point.x < maxX)
+  if(point.x < min.x)
     return false;
-  if(point.x > 0)
+  if(point.x > max.x)
     return false;
-  if(point.y < maxY)
+  if(point.y < min.y)
     return false;
-  if(point.y > 0)
+  if(point.y > max.y)
     return false;
-  else return true;
+
+  return true;
 }
 std::vector<Point2D> RecursiveBacktrackerExample::getVisitables(World* w, const Point2D& p)
 {
   auto sideOver2 = w->GetSize() / 2;
   std::vector<Point2D> visitables;
-  if(check(p.Up(),sideOver2, sideOver2))
+  if(check(p.Up(), Point2D(-sideOver2, -sideOver2), Point2D(sideOver2, sideOver2)))
     visitables.push_back(p.Up());
-  if(check(p.Down(),sideOver2, sideOver2))
+  if(check(p.Down(),Point2D(-sideOver2, -sideOver2), Point2D(sideOver2, sideOver2)))
     visitables.push_back(p.Down());
-  if(check(p.Right(),sideOver2, sideOver2))
+  if(check(p.Right(),Point2D(-sideOver2, -sideOver2), Point2D(sideOver2, sideOver2)))
     visitables.push_back(p.Right());
-  if(check(p.Left(),sideOver2, sideOver2))
+  if(check(p.Left(),Point2D(-sideOver2, -sideOver2), Point2D(sideOver2, sideOver2)))
     visitables.push_back(p.Left());
 
   return visitables;
@@ -45,61 +46,79 @@ Point2D RecursiveBacktrackerExample::randomStartPoint(World* world) {
   auto sideOver2 = world->GetSize() / 2;
 
   // todo: change this if you want
-  for (int y = -sideOver2; y <= sideOver2; y++)
-    for (int x = -sideOver2; x <= sideOver2; x++)
-      if (!visited[y][x]) return {x, y};
-  return {INT_MAX, INT_MAX};
+  Point2D rngPt = Point2D(Random::Range(-sideOver2, sideOver2), Random::Range(-sideOver2, sideOver2));
+  if (!visited[rngPt.y][rngPt.x]) return {rngPt.x, rngPt.y};
+  else return {INT_MAX, INT_MAX};
 }
 bool RecursiveBacktrackerExample::Step(World* w) {
   auto rngStart = randomStartPoint(w);
-  if(rngStart == Point2D{INT_MAX, INT_MAX} && stack.empty())
-  {
+  if (rngStart == Point2D{INT_MAX, INT_MAX} && stack.empty()) {
     return false;
   }
-  if(stack.empty())
-  {
+  if (stack.empty()) {
     stack.push_back(rngStart);
     return true;
   }
-  while(!stack.empty())
-  {
-    Point2D current = stack.back();
-    visited[current.y][current.x] = true;
-    int options = getVisitables(w, current).size();
-    if(options == 1)
-    {
-      Point2D pt = getVisitables(w, current).at(0);
-      if(pt.Up() == current && pt.Up().y < INT_MAX)
-        w->GetNode(current).SetSouth(false);
-      if(pt.Down() == current && pt.Down().y > -INT_MAX)
-        w->GetNode(current).SetNorth(false);
-      if(pt.Left() == current && pt.Left().x > -INT_MAX)
-        w->GetNode(current).SetEast(false);
-      if(pt.Right() == current && pt.Right().x < INT_MAX)
-        w->GetNode(current).SetWest(false);
-    }
-    else if(options != 0)
-    {
-      auto neighs = getVisitables(w, current);
-      int numV = neighs.size();
 
-      int decision = Random::Range(0, numV);
+  Point2D current = stack.back();
+  w->SetNodeColor(current, Color32(255, 0, 0, 255));
+  visited[current.y][current.x] = true;
+  auto options = getVisitables(w, current);
+  if (options.size() == 1) {
+    Point2D pt = options.at(0);
+    if (pt.Up() == current && pt.Up().y < INT_MAX) {
+      w->SetNodeColor(current, NXT);
+      w->GetNode(current).SetSouth(true);
+      stack.push_back(current.Down());
+    }
+    if (pt.Down() == current && pt.Down().y > -INT_MAX) {
+      w->SetNodeColor(current, NXT);
+      w->GetNode(current).SetNorth(false);
+      stack.push_back(current.Up());
+    }
+    if (pt.Left() == current && pt.Left().x > -INT_MAX) {
+      w->SetNodeColor(current, NXT);
+      w->GetNode(current).SetEast(false);
+      stack.push_back(current.Right());
+    }
+    if (pt.Right() == current && pt.Right().x < INT_MAX) {
+      w->SetNodeColor(current, NXT);
+      w->GetNode(current).SetWest(false);
+      stack.push_back(current.Left());
+    }
+    return true;
+  } else if (options.size() != 0) {
+    auto neighs = getVisitables(w, current);
+    int numV = neighs.size();
 
-      Point2D pts = getVisitables(w, current).at(decision);
-      if(pts.Up() == current)
-        w->GetNode(current).SetSouth(false);
-      if(pts.Down() == current)
-        w->GetNode(current).SetNorth(false);
-      if(pts.Left() == current)
-        w->GetNode(current).SetEast(false);
-      if(pts.Right() == current)
-        w->GetNode(current).SetWest(false);
+    int decision = Random::Range(0, numV - 1);
+
+    Point2D pt = getVisitables(w, current).at(decision);
+    if (pt.Up() == current && pt.Up().y < INT_MAX) {
+      w->SetNodeColor(current, NXT);
+      w->GetNode(current).SetSouth(false);
+      stack.push_back(current.Down());
     }
-    else if(options == 0)
-    {
-      RecursiveBacktrackerExample();
+    if (pt.Down() == current && pt.Down().y > -INT_MAX) {
+      w->SetNodeColor(current, NXT);
+      w->GetNode(current).SetNorth(false);
+      stack.push_back(current.Up());
     }
+    if (pt.Left() == current && pt.Left().x > -INT_MAX) {
+      w->SetNodeColor(current, NXT);
+      w->GetNode(current).SetEast(false);
+      stack.push_back(current.Right());
+    }
+    if (pt.Right() == current && pt.Right().x < INT_MAX) {
+      w->SetNodeColor(current, NXT);
+      w->GetNode(current).SetWest(false);
+      stack.push_back(current.Left());
+    }
+    return true;
   }
-
-  return true;
+  else if (options.size() == 0) {
+    w->SetNodeColor(current, POPBACK);
+    stack.pop_back();
+    return true;
+  }
 }

@@ -14,6 +14,9 @@ private:
   std::vector<Point2D> getVisitables(World* w, const Point2D& p);
 
 public:
+  const Color32 CURRENT = Color32(255, 0, 0, 255);
+  const Color32 NXT = Color32(0, 0, 255, 255);
+  const Color32 POPBACK = Color32(0, 0, 0, 255);
   RecursiveBacktrackerExample() = default;
   std::string GetName() override { return "Recursive Back-Tracker"; };
   bool Step(World* world) override;
