@@ -3,7 +3,6 @@
 #include "Random.h"
 
 bool PrimExample::Step(World* w) {
-  int sideOver2 = w->GetSize() / 2;
 
   return true;
 }
