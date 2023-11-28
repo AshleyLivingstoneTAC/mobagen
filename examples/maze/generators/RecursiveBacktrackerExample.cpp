@@ -44,13 +44,14 @@ void RecursiveBacktrackerExample::Clear(World* world) {
 }
 Point2D RecursiveBacktrackerExample::randomStartPoint(World* world) {
   auto sideOver2 = world->GetSize() / 2;
-
   // todo: change this if you want
-  Point2D rngPt = Point2D(Random::Range(-sideOver2, sideOver2), Random::Range(-sideOver2, sideOver2));
-  if (!visited[rngPt.y][rngPt.x]) return {rngPt.x, rngPt.y};
-  else return {INT_MAX, INT_MAX};
+  for (int y = -sideOver2; y <= sideOver2; y++)
+    for (int x = -sideOver2; x <= sideOver2; x++)
+      if (!visited[y][x]) return {x, y};
+  return {INT_MAX, INT_MAX};
 }
 bool RecursiveBacktrackerExample::Step(World* w) {
+  auto sideOver2 = w->GetSize()/2;
   auto rngStart = randomStartPoint(w);
   if (rngStart == Point2D{INT_MAX, INT_MAX} && stack.empty()) {
     return false;
@@ -61,62 +62,57 @@ bool RecursiveBacktrackerExample::Step(World* w) {
   }
 
   Point2D current = stack.back();
-  w->SetNodeColor(current, Color32(255, 0, 0, 255));
+
+  w->SetNodeColor(current, CURRENT);
   visited[current.y][current.x] = true;
-  auto options = getVisitables(w, current);
-  if (options.size() == 1) {
-    Point2D pt = options.at(0);
-    if (pt.Up() == current && pt.Up().y < INT_MAX) {
-      w->SetNodeColor(current, NXT);
-      w->GetNode(current).SetSouth(true);
-      stack.push_back(current.Down());
-    }
-    if (pt.Down() == current && pt.Down().y > -INT_MAX) {
-      w->SetNodeColor(current, NXT);
-      w->GetNode(current).SetNorth(false);
-      stack.push_back(current.Up());
-    }
-    if (pt.Left() == current && pt.Left().x > -INT_MAX) {
-      w->SetNodeColor(current, NXT);
-      w->GetNode(current).SetEast(false);
-      stack.push_back(current.Right());
-    }
-    if (pt.Right() == current && pt.Right().x < INT_MAX) {
-      w->SetNodeColor(current, NXT);
-      w->GetNode(current).SetWest(false);
-      stack.push_back(current.Left());
-    }
-    return true;
-  } else if (options.size() != 0) {
-    auto neighs = getVisitables(w, current);
-    int numV = neighs.size();
+  auto v = getVisitables(w, current);
+  std::vector<Point2D> options;
+  for(auto iter : v)
+  {
+    if(!visited[iter.y][iter.x])
+      options.push_back(iter);
+  }
+  if (!options.empty()) {
+    int numV = options.size();
 
     int decision = Random::Range(0, numV - 1);
 
-    Point2D pt = getVisitables(w, current).at(decision);
-    if (pt.Up() == current && pt.Up().y < INT_MAX) {
-      w->SetNodeColor(current, NXT);
-      w->GetNode(current).SetSouth(false);
-      stack.push_back(current.Down());
+    Point2D pt = options.at(decision);
+    auto delta = pt - current;
+
+    // right
+    if(delta == Point2D(1,0) && pt.x<=sideOver2){
+      w->SetNodeColor(pt, CURRENT);
+      w->SetEast(current, false);
+      stack.push_back(pt);
+      visited[pt.y][pt.x] = true;
     }
-    if (pt.Down() == current && pt.Down().y > -INT_MAX) {
-      w->SetNodeColor(current, NXT);
-      w->GetNode(current).SetNorth(false);
-      stack.push_back(current.Up());
+    // left
+    if(delta == Point2D(-1,0) && pt.x>=-sideOver2){
+      w->SetNodeColor(pt, CURRENT);
+      w->SetWest(current, false);
+      stack.push_back(pt);
+      visited[pt.y][pt.x] = true;
     }
-    if (pt.Left() == current && pt.Left().x > -INT_MAX) {
-      w->SetNodeColor(current, NXT);
-      w->GetNode(current).SetEast(false);
-      stack.push_back(current.Right());
+    // up
+    if(delta == Point2D(0,1) && pt.y<=sideOver2){
+      w->SetNodeColor(pt, CURRENT);
+      w->SetSouth(current,false);
+      stack.push_back(pt);
+      visited[pt.y][pt.x] = true;
     }
-    if (pt.Right() == current && pt.Right().x < INT_MAX) {
-      w->SetNodeColor(current, NXT);
-      w->GetNode(current).SetWest(false);
-      stack.push_back(current.Left());
+    // down
+    if(delta == Point2D(0,-1) && pt.y>=-sideOver2){
+      w->SetNodeColor(pt, CURRENT);
+      w->SetNorth(current, false);
+      stack.push_back(pt);
+      visited[pt.y][pt.x] = true;
     }
+
+    w->SetNodeColor(current, NXT);
     return true;
   }
-  else if (options.size() == 0) {
+  else if (options.empty()) {
     w->SetNodeColor(current, POPBACK);
     stack.pop_back();
     return true;
